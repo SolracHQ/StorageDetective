@@ -1,4 +1,4 @@
-import std/[os, strformat, algorithm, times]
+import std/[os, strformat, algorithm, times, options]
 import illwill
 import tree, sizes, menu
 
@@ -112,8 +112,8 @@ proc main() =
         dir = dir.parent
         menu = newMenu(dir.items, treeDisplayer)
     of Key.Enter:
-      if menu.selected.kind != tkFile:
-        dir = menu.selected.dir
+      if menu.selected.isSome and menu.selected.get.kind != tkFile:
+        dir = menu.selected.get.dir
         menu = newMenu(dir.items, treeDisplayer)
     of Key.Up: menu.dec
     of Key.Down: menu.inc

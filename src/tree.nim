@@ -38,10 +38,6 @@ proc buildTree*(path: string, callback: proc(path: string)): Dir =
     let (currentPath, currentDir) = stack.pop()
     callback(currentPath)
 
-    currentDir.dirs.add(Dir(name: ".", parent: currentDir.parent))
-    if currentDir.parent != nil:
-      currentDir.dirs.add(Dir(name: "..", parent: currentDir.parent.parent))
-
     for file in walkDir(currentPath, skipSpecial = true):
       if file.kind == pcFile:
         currentDir.files.add File(

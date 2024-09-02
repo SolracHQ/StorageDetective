@@ -1,4 +1,5 @@
 import illwill
+import std/[options]
 
 type Menu*[S, T] = object
   items: S
@@ -72,15 +73,18 @@ proc draw*[S, T](menu: var Menu[S, T], window: DrawableWindow, tb: var TerminalB
 
 proc inc*(menu: var Menu) =
   ## Selects the next item in the menu.
+  if menu.items.len == 0: return
   menu.selected = (menu.selected + 1) mod menu.items.len
 
 proc dec*(menu: var Menu) =
   ## Selects the previous item in the menu.
+  if menu.items.len == 0: return
   menu.selected = (menu.selected + menu.items.len - 1) mod menu.items.len
 
-proc selected*[S,T](menu: var Menu[S, T]): T =
+proc selected*[S,T](menu: var Menu[S, T]): Option[T] =
   ## Returns the selected item in the menu.
-  result = menu.items.get(menu.selected)
+  if menu.items.len == 0: return none(T)
+  result = some(menu.items.get(menu.selected))
 
 proc selectedIndex*[S,T](menu: var Menu[S, T]): int =
   ## Returns the index of the selected item in the menu.
