@@ -103,9 +103,8 @@ proc main() =
     terminalBuffer.write(1, terminalBuffer.height - 1, " ", $sortInfo, " ")
 
     terminalBuffer.display()
-    let key = getKey()
 
-    case key
+    case getKey()
     of Key.Q: exitProc()
     of Key.Escape, Key.Backspace:
       if dir.parent != nil:
@@ -115,8 +114,8 @@ proc main() =
       if menu.selected.isSome and menu.selected.get.kind != tkFile:
         dir = menu.selected.get.dir
         menu = newMenu(dir.items, treeDisplayer)
-    of Key.Up: menu.dec
-    of Key.Down: menu.inc
+    of Key.Up, Key.Left, Key.K: menu.dec
+    of Key.Down, Key.Right, Key.J: menu.inc
     of Key.G:
       toggleEnumValue(sortInfo.grouping)
       menu = newMenu(dir.items, treeDisplayer)
