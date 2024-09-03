@@ -85,11 +85,12 @@ proc path*[T: Dir or File](element: T): string =
 type 
   Iterator* = tuple[len: int, get: proc(i: int): TreeItem {.closure.}]
   TreeKind* = enum
-    tkFile, tkDir
+    tkFile, tkDir, tkUpLink
   TreeItem* = object
     case kind*: TreeKind
     of tkFile: file*: File
     of tkDir: dir*: Dir
+    of tkUpLink: parent*: Dir
 
 proc size(element: TreeItem): Size =
   ## Returns the size of the file or directory.
@@ -162,3 +163,11 @@ proc items*(dir: Dir): Iterator =
     result.len = allItems.len
     result.get = (i: int) => allItems[i]
 
+  if dir.parent != nil:
+    let oldGet = result.get
+    result.len += 1
+    result.get = proc (i: int): TreeItem =
+      if i == 0:
+        result = TreeItem(kind: tkUpLink, parent: dir.parent)
+      else:
+        result = oldGet(i - 1)

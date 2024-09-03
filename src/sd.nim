@@ -5,7 +5,10 @@ import tree, sizes, menu
 proc exitProc() {.noconv.} =
   illwillDeinit()
   showCursor()
-  quit(0)
+  let e = getCurrentException()
+  if e != nil:
+    echo e.getStackTrace()
+  quit(if e == nil: 0 else: 1)
 
 proc `$`*(sortInfo: tuple[sortCriteria: SortCriteria, sortOrder: algorithm.SortOrder, grouping: Grouping]): string =
   ## Returns a formatted string for the sort information
@@ -31,8 +34,10 @@ proc treeDisplayer(x: TreeItem): string =
   ## Returns a formatted string for a TreeItem
   if x.kind == tkFile:
     return &"{x.file.size:>10} {x.file.name}"
-  else:
+  elif x.kind == tkDir:
     return &"{x.dir.size:>10} {x.dir.name}"
+  elif x.kind == tkUpLink:
+    return &"{x.parent.size:>10} .."
 
 proc shortenPath(path: string, maxLen: int): string =
   ## Shortens a long path by replacing the middle part with '...'.
@@ -108,9 +113,10 @@ proc main() =
 
     # Draw UI frame
     terminalBuffer.drawRect(0, 0, terminalBuffer.width - 1, terminalBuffer.height - 1)
-    terminalBuffer.write(4, 0, " ", dir.path, " - Press Q to quit ")
+    let count = dir.count
+    terminalBuffer.write(4, 0, " ", dir.path, " - ", $count.files , " files | ", $count.dirs , " dirs - Total size: ", $dir.size, " ")
     menu.draw((1, 1, terminalBuffer.width - 2, terminalBuffer.height - 1), terminalBuffer)
-    terminalBuffer.write(1, terminalBuffer.height - 1, " ", $sortInfo, " ")
+    terminalBuffer.write(1, terminalBuffer.height - 1, " ", $sortInfo, " - Press Q to quit ")
 
     terminalBuffer.display()
 
@@ -121,8 +127,11 @@ proc main() =
         dir = dir.parent
         menu = newMenu(dir.items, treeDisplayer)
     of Key.Enter:
-      if menu.selected.isSome and menu.selected.get.kind != tkFile:
+      if menu.selected.isSome and menu.selected.get.kind == tkDir:
         dir = menu.selected.get.dir
+        menu = newMenu(dir.items, treeDisplayer)
+      elif menu.selected.isSome and menu.selected.get.kind == tkUpLink:
+        dir = menu.selected.get.parent
         menu = newMenu(dir.items, treeDisplayer)
     of Key.Up, Key.Left, Key.K: menu.dec
     of Key.Down, Key.Right, Key.J: menu.inc
@@ -140,4 +149,7 @@ proc main() =
     sleep(20)
 
 when isMainModule:
-  main()
+  try:
+    main()
+  except:
+    exitProc()
