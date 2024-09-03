@@ -59,6 +59,20 @@ proc shortenPath(path: string, maxLen: int): string =
 
   return &"{firstPart}/.../{lastPart}"
 
+proc analyzingDialog(path: string, terminalBuffer: var TerminalBuffer) =
+  terminalBuffer.clear()
+  terminalBuffer.drawRect(0, 0, terminalBuffer.width - 1, terminalBuffer.height - 1)
+  
+  # Draw the main message
+  let message = "Analyzing..."
+  terminalBuffer.write(terminalBuffer.width div 2 - message.len div 2, terminalBuffer.height div 2, message)
+
+  # Draw the current path
+  let displayPath = if path.len > terminalBuffer.width - 10: shortenPath(path, terminalBuffer.width - 10) else: path
+  terminalBuffer.write(terminalBuffer.width div 2 - displayPath.len div 2, terminalBuffer.height div 2 + 1, displayPath)
+
+  terminalBuffer.display()
+
 proc main() =
   var path = if paramCount() == 0: "." else: paramStr(1)
 
@@ -72,25 +86,21 @@ proc main() =
 
   var terminalBuffer: TerminalBuffer = newTerminalBuffer(terminalWidth(), terminalHeight())
 
-  var lastUpdate = now()
+  var lastUpdateTime = now()
+
+  let shouldUpdate = proc(): bool =
+    const freq = initDuration(milliseconds = 20)
+    result = (now() - lastUpdateTime) >= freq
 
   var dir = buildTree(path.absolutePath, proc(path: string) =
-    if now() - lastUpdate < initDuration(milliseconds = 20):
-      return
-    lastUpdate = now()
-    terminalBuffer.clear()
-    terminalBuffer.drawRect(0, 0, terminalBuffer.width - 1, terminalBuffer.height - 1)
-    var message = "Analyzing..."
-    terminalBuffer.write(terminalBuffer.width div 2 - message.len div 2, terminalBuffer.height div 2, message)
-    if path.len > terminalBuffer.width - 10:
-      message = shortenPath(path, terminalBuffer.width - 10)
-    else:
-      message = path
-    terminalBuffer.write(terminalBuffer.width div 2 - message.len div 2, terminalBuffer.height div 2 + 1, message)
-    terminalBuffer.display()
+    # Update the display every 20ms
+    if not shouldUpdate(): return
+
+    lastUpdateTime = now()
+    analyzingDialog(path, terminalBuffer)
   )
 
-  var menu = newMenu(dir.items, treeDisplayer)
+  var menu: Menu[tree.Iterator, tree.TreeItem] = newMenu(dir.items, treeDisplayer)
 
   while true:
     terminalBuffer = newTerminalBuffer(terminalWidth(), terminalHeight())
