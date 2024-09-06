@@ -1,21 +1,22 @@
 import illwill
 import std/[options]
+import iter
 
-type Menu*[S, T] = object
-  items: S
+type Menu* = object
+  items: Iterator
   selected: int
-  convertor: proc(item: T): string
+  convertor: proc(item: TreeItem): string
 
 type DrawableWindow* = tuple[x1, y1, x2, y2: int]
 
-proc newMenu*[S, T](items: S, convertor: proc(item: T): string): Menu[S, T] =
+proc newMenu*(items: Iterator, convertor: proc(item: TreeItem): string): Menu =
   ## Creates a new menu with the given items.
   ##
   ## Parameters:
   ## - `items`: A sequence of items to display in the menu.
   ## - `convertor`: A function that converts an item to a string.
   ##
-  result = Menu[S, T](items: items, selected: 0, convertor: convertor)
+  result = Menu(items: items, selected: 0, convertor: convertor)
 
 proc listRange(index, size, availableRows: int): HSlice[int, int] =
   ## Gets the range of indices to be displayed in the terminal.
@@ -48,7 +49,7 @@ proc listRange(index, size, availableRows: int): HSlice[int, int] =
 
   result = startIndex..<endIndex
 
-proc draw*[S, T](menu: var Menu[S, T], window: DrawableWindow, tb: var TerminalBuffer) =
+proc draw*(menu: var Menu, window: DrawableWindow, tb: var TerminalBuffer) =
   ## Draws the menu to the terminal.
   ##
   ## Parameters:
@@ -81,11 +82,11 @@ proc dec*(menu: var Menu) =
   if menu.items.len == 0: return
   menu.selected = (menu.selected + menu.items.len - 1) mod menu.items.len
 
-proc selected*[S,T](menu: var Menu[S, T]): Option[T] =
+proc selected*(menu: var Menu): Option[TreeItem] =
   ## Returns the selected item in the menu.
-  if menu.items.len == 0: return none(T)
+  if menu.items.len == 0: return none(TreeItem)
   result = some(menu.items.get(menu.selected))
 
-proc selectedIndex*[S,T](menu: var Menu[S, T]): int =
+proc selectedIndex*(menu: var Menu): int =
   ## Returns the index of the selected item in the menu.
   result = menu.selected

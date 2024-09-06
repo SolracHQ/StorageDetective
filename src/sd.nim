@@ -1,6 +1,6 @@
-import std/[os, strformat, algorithm, times, options]
+import std/[os, strformat, times, options]
 import illwill
-import tree, sizes, menu
+import tree, sizes, menu, config, iter
 
 proc exitProc() {.noconv.} =
   illwillDeinit()
@@ -10,34 +10,12 @@ proc exitProc() {.noconv.} =
     echo e.getStackTrace()
   quit(if e == nil: 0 else: 1)
 
-proc `$`*(sortInfo: tuple[sortCriteria: SortCriteria, sortOrder: algorithm.SortOrder, grouping: Grouping]): string =
-  ## Returns a formatted string for the sort information
-  result = ""
-  case sortInfo.sortCriteria
-  of scName: result &= "(s)ort: by name | "
-  of scSize: result &= "(s)ort: by size | "
-  case sortInfo.grouping
-  of filesFirst: result &= "(g)rouping: files first | "
-  of dirsFirst: result &= "(g)rouping: directories first | "
-  of filesOnly: result &= "(g)rouping: files only | "
-  of dirsOnly: result &= "(g)rouping: directories only | "
-  of mixed: result &= "(g)rouping: mixed | "
-  case sortInfo.sortOrder
-  of Ascending: result &= "(o)rder: ascending"
-  of Descending: result &= "(o)rder: descending"
-
-template toggleEnumValue(x: enum): untyped =
-  ## Toggles the value of an enum to the next one, cycling back to the first if necessary.
-  x = if x == high(x.type): low(x.type) else: x.succ
-
 proc treeDisplayer(x: TreeItem): string =
   ## Returns a formatted string for a TreeItem
-  if x.kind == tkFile:
-    return &"{x.file.size:>10} {x.file.name}"
-  elif x.kind == tkDir:
-    return &"{x.dir.size:>10} {x.dir.name}"
-  elif x.kind == tkUpLink:
-    return &"{x.parent.size:>10} .."
+  case x.kind:
+  of tkFile:   result = &"{x.file.size%x.file.parent.size:>5}% {x.file.size:>10} {x.file.name}"
+  of tkDir:    result = &"{x.dir.size%x.dir.parent.size:>5}% {x.dir.size:>10} {x.dir.name}"
+  of tkUpLink: result = &"{x.parent.size:>17} .."
 
 proc shortenPath(path: string, maxLen: int): string =
   ## Shortens a long path by replacing the middle part with '...'.
@@ -52,12 +30,10 @@ proc shortenPath(path: string, maxLen: int): string =
   if path.len <= maxLen:
     return path
 
-  let parts = path.splitPath()
-  var firstPart = parts[0]
-  let lastPart = parts[1]
+  var (firstPart, lastPart) = path.splitPath()
 
   if lastPart.len + 5 >= maxLen:
-    return &"{firstPart}/.../{lastPart.lastPathPart}"
+    return &".../{lastPart.lastPathPart}"
 
   while firstPart.len + lastPart.len + 5 > maxLen and firstPart.len > 0:
     firstPart = firstPart.splitPath()[0]
@@ -105,18 +81,23 @@ proc main() =
     analyzingDialog(path, terminalBuffer)
   )
 
-  var menu: Menu[tree.Iterator, tree.TreeItem] = newMenu(dir.items, treeDisplayer)
+  var menu = newMenu(dir.items, treeDisplayer)
 
   while true:
     terminalBuffer = newTerminalBuffer(terminalWidth(), terminalHeight())
     terminalBuffer.clear()
 
     # Draw UI frame
+    # -- path  -  files  |  dirs  -  total size --
+    # | Size Item                                 |
+    # | Size Item                                 |
+    # | Size Item                                 |
+    # - (S)ort - (G)rouping - (O)rder - (Q)uit ----
     terminalBuffer.drawRect(0, 0, terminalBuffer.width - 1, terminalBuffer.height - 1)
     let count = dir.count
     terminalBuffer.write(4, 0, " ", dir.path, " - ", $count.files , " files | ", $count.dirs , " dirs - Total size: ", $dir.size, " ")
     menu.draw((1, 1, terminalBuffer.width - 2, terminalBuffer.height - 1), terminalBuffer)
-    terminalBuffer.write(1, terminalBuffer.height - 1, " ", $sortInfo, " - Press Q to quit ")
+    terminalBuffer.write(1, terminalBuffer.height - 1, " ", $cfg, " - Press Q to quit ")
 
     terminalBuffer.display()
 
@@ -136,13 +117,13 @@ proc main() =
     of Key.Up, Key.Left, Key.K: menu.dec
     of Key.Down, Key.Right, Key.J: menu.inc
     of Key.G:
-      toggleEnumValue(sortInfo.grouping)
+      cfg.grouping.toggle()
       menu = newMenu(dir.items, treeDisplayer)
     of Key.S:
-      toggleEnumValue(sortInfo.sortCriteria)
+      cfg.sortCriteria.toggle()
       menu = newMenu(dir.items, treeDisplayer)
     of Key.O:
-      toggleEnumValue(sortInfo.sortOrder)
+      cfg.sortOrder.toggle()
       menu = newMenu(dir.items, treeDisplayer)
     else: discard
 

@@ -23,9 +23,9 @@ proc `+=`*(a: var Size, b: Size) =
 proc `==`*(a: Size, b: Size): bool =
   result = a.int == b.int
 
-proc `%`*(a: Size, b: Size): float =
+proc `%`*(a: Size, b: Size): string =
   # Get the percentage of `a` relative to `b`
-  result = (a.int / b.int) * 100
+  result = &"{(a.int / b.int) * 100:.2f}"
 
 proc cmp*(a: Size, b: Size): int {.inline.} =
   # Compare `a` to `b`
