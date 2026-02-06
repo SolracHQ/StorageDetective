@@ -2,20 +2,18 @@ import std/os
 import sizes
 
 type
-  ## Represents a file in the file tree.
-  File* = object
-    name*: string    ## The full path of the file.
-    size*: Size      ## The size of the file.
-    parent*: Dir    ## The parent directory of the file.
+  File* = object ## Represents a file in the file tree.
+    name*: string ## The full path of the file.
+    size*: Size ## The size of the file.
+    parent*: Dir ## The parent directory of the file.
 
-  ## Represents a directory in the file tree.
-  Dir* = ref object
-    name*: string        ## The full path of the directory.
-    parent*: Dir        ## The parent directory, or `nil` if it is the root.
-    files*: seq[File]   ## A sequence of `File` objects representing the files in the directory.
-    dirs*: seq[Dir]     ## A sequence of `Dir` objects representing the subdirectories.
-    size: Size          ## The total size of all files in the directory and its subdirectories.
-
+  Dir* = ref object ## Represents a directory in the file tree.
+    name*: string ## The full path of the directory.
+    parent*: Dir ## The parent directory, or `nil` if it is the root.
+    files*: seq[File]
+      ## A sequence of `File` objects representing the files in the directory.
+    dirs*: seq[Dir] ## A sequence of `Dir` objects representing the subdirectories.
+    size: Size ## The total size of all files in the directory and its subdirectories.
 
 proc buildTree*(path: string, callback: proc(path: string)): Dir =
   ## Builds a tree structure representing the files and directories starting from the given path.
@@ -36,14 +34,15 @@ proc buildTree*(path: string, callback: proc(path: string)): Dir =
       if file.kind == pcFile:
         currentDir.files.add File(
           name: file.path.lastPathPart,
-          size: file.path.getFileSize.Size,
-          parent: currentDir
+          size:
+            try:
+              file.path.getFileSize().Size
+            except:
+              Size(0),
+          parent: currentDir,
         )
       elif file.kind == pcDir:
-        let newDir = Dir(
-          name: file.path.lastPathPart & "/",
-          parent: currentDir
-        )
+        let newDir = Dir(name: file.path.lastPathPart & "/", parent: currentDir)
         currentDir.dirs.add(newDir)
         stack.add((file.path, newDir))
   result = rootDir

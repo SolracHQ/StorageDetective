@@ -1,12 +1,16 @@
 import std/[algorithm, sugar]
 import sizes, config, tree
 
-type 
+type
   Iterator* = object
     len*: int
     get*: proc(i: int): TreeItem
+
   TreeKind* = enum
-    tkFile, tkDir, tkUpLink
+    tkFile
+    tkDir
+    tkUpLink
+
   TreeItem* = object
     case kind*: TreeKind
     of tkFile: file*: tree.File
@@ -35,7 +39,9 @@ proc sortItems[T](items: var seq[T]) =
   of scSize:
     items.sort((a, b) => a.size.cmp(b.size), order = cfg.sortOrder)
 
-proc createGetClosure(files: seq[tree.File], dirs: seq[Dir], grouping: Grouping): proc(i: int): TreeItem {.closure.} =
+proc createGetClosure(
+    files: seq[tree.File], dirs: seq[Dir], grouping: Grouping
+): proc(i: int): TreeItem {.closure.} =
   ## Creates a closure that returns the appropriate TreeItem based on the grouping strategy.
   result = proc(i: int): TreeItem =
     case grouping
@@ -54,7 +60,7 @@ proc createGetClosure(files: seq[tree.File], dirs: seq[Dir], grouping: Grouping)
     of dirsOnly:
       result = TreeItem(kind: tkDir, dir: dirs[i])
     else:
-      discard  # For cases that should not occur
+      discard # For cases that should not occur
 
 proc items*(dir: Dir): Iterator =
   ## Returns an iterator that yields the items in the directory in the order specified by the sort criteria.
@@ -86,7 +92,7 @@ proc items*(dir: Dir): Iterator =
   if dir.parent != nil:
     let oldGet = result.get
     result.len += 1
-    result.get = proc (i: int): TreeItem =
+    result.get = proc(i: int): TreeItem =
       if i == 0:
         result = TreeItem(kind: tkUpLink, parent: dir.parent)
       else:

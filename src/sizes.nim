@@ -1,10 +1,15 @@
 import std/[strformat]
 
-type 
+type
   SizeKind = enum
-    B, KB, MB, GB, TB, PB
+    B   ## 1024 ^ 0
+    KB  ## 1024 ^ 1
+    MB  ## 1024 ^ 2
+    GB  ## 1024 ^ 3
+    TB  ## 1024 ^ 4
+    PB  ## 1024 ^ 5
 
-  Size* = distinct int
+  Size* = distinct int ## Represents a file size in bytes.
 
 proc `$`*(size: Size): string =
   var kind = B
