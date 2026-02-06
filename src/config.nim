@@ -1,5 +1,7 @@
 import algorithm
 
+export algorithm.SortOrder
+
 type
   SortCriteria* = enum
     scName
@@ -12,7 +14,6 @@ type
     dirsOnly
     mixed
 
-  SortOrder* = algorithm.SortOrder
   Config = object
     sortCriteria*: SortCriteria
     sortOrder*: SortOrder
@@ -20,7 +21,7 @@ type
 
 var cfg*: Config = Config(sortCriteria: scSize, sortOrder: Descending, grouping: mixed)
 
-template impltToggle(kind: typedesc) =
+template implToggle(kind: typedesc) =
   proc toggle*(x: var kind) {.inline.} =
     ## Toggles the value of the enum to the next one, cycling back to the first if necessary.
     x =
@@ -29,9 +30,9 @@ template impltToggle(kind: typedesc) =
       else:
         x.succ
 
-impltToggle(SortCriteria)
-impltToggle(Grouping)
-impltToggle(SortOrder)
+implToggle(SortCriteria)
+implToggle(Grouping)
+implToggle(SortOrder)
 
 proc `$`*(sortInfo: Config): string =
   ## Returns a formatted string for the sort information
